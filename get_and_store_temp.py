@@ -4,7 +4,7 @@
 #
 
 import argparse
-import datetime
+from datetime import datetime
 import smbus
 import time
 
@@ -16,7 +16,7 @@ args = parser.parse_args()
 
 ######  Subroutines   #####
 
-def get_sensor_data()
+def get_sensor_data():
 
    # Distributed with a free-will license.
    # Use it any way you want, profit or free, provided it fits in the licenses of its associated works.
@@ -154,22 +154,36 @@ def get_sensor_data()
    debug_print("Pressure : %.2f inhg " %pressure)
    debug_print("Relative Humidity : %.2f %%" %humidity)
    return temperature, pressure, humidity
+## End of function
 
 
-def current_time():
-    now = time.localtime()
-    now_hour = int(time.strftime("%H", now))
-    now_min = int(time.strftime("%M", now))
-    now_sec = int(time.strftime("%S", now))
-    return now_hour, now_min, now_sec
+def current_date_time():
+    now = datetime.now()
+    d_string = now.strftime("%Y-%m-%d")
+    t_string = now.strftime("%H:%M:%S")
+    return d_string, t_string
+## End of function
 
 def debug_print(string):
     # Add print statement here is -v is set.  Still have to figure out how to set it.
     if args.verbose:
-        now = time.localtime()
-        debug_time = str(time.strftime("%H:%M:%S ", now))
-        print(f'DEBUG: {debug_time} - {string}')
+        today, now = current_date_time()
+        print(f'DEBUG: {today} {now} - {string}')
 ## End of function
+
+def write_csv_file(write_dir):
+    temp,pressure,humidity=get_sensor_data()
+    now_date, now_time=current_date_time()
+    full_filename=write_dir + '/' + now_date + '.csv'
+    debug_print(full_filename)
+    openFile=open(full_filename, 'a')
+    openFile.write(f'{now_date} {now_time},{temp:.2f},{pressure:.2f},{humidity:.2f}\n')
+    #openFile.write(f'{now_date} {now_time},{temp:.2f}\N{DEGREE SIGN}F,{pressure:.2f},{humidity:.2f}%\n')
+    openFile.close()
+
 
 ##### Set default arguments  #####
 
+write_dir='/home/pi/temp_sensor_data'
+
+write_csv_file(write_dir)
