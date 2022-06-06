@@ -160,7 +160,7 @@ def get_sensor_data():
 def current_date_time():
     now = datetime.now()
     d_string = now.strftime("%Y-%m-%d")
-    t_string = now.strftime("%H:%M:%S")
+    t_string = now.strftime("%H:%M")
     return d_string, t_string
 ## End of function
 
