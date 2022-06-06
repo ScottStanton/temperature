@@ -17,7 +17,7 @@ args = parser.parse_args()
 ######  Subroutines   #####
 
 def get_sensor_data():
-
+   # https://github.com/BoschSensortec/BME280_driver
    # Distributed with a free-will license.
    # Use it any way you want, profit or free, provided it fits in the licenses of its associated works.
    # BME280
@@ -157,23 +157,26 @@ def get_sensor_data():
 ## End of function
 
 
-def current_date_time():
+def current_date_time(flag):
     now = datetime.now()
     d_string = now.strftime("%Y-%m-%d")
-    t_string = now.strftime("%H:%M")
+    if flag == "hm":
+       t_string = now.strftime("%H:%M")
+    if flag == "hms":
+       t_string = now.strftime("%H:%M:%S")
     return d_string, t_string
 ## End of function
 
 def debug_print(string):
-    # Add print statement here is -v is set.  Still have to figure out how to set it.
+    # Add print statement here is -v is set.  
     if args.verbose:
-        today, now = current_date_time()
+        today, now = current_date_time('hms')
         print(f'DEBUG: {today} {now} - {string}')
 ## End of function
 
 def write_csv_file(write_dir):
     temp,pressure,humidity=get_sensor_data()
-    now_date, now_time=current_date_time()
+    now_date, now_time=current_date_time('hm')
     full_filename=write_dir + '/' + now_date + '.csv'
     debug_print(full_filename)
     openFile=open(full_filename, 'a')
