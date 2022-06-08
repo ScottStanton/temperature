@@ -3,6 +3,9 @@
 # This software is covered by The Unlicense license
 #
 
+### Change these variables to match your environment:
+datadir='/home/pi/temp_sensor_data/'
+
 import argparse
 import csv, math, requests, sys
 import matplotlib
@@ -11,9 +14,9 @@ matplotlib.rc('axes',edgecolor='#DDDDDD')
 import numpy as np
 import matplotlib.pyplot as plt
 from tenacity import *
-from datetime import datetime
+import datetime
 
-htmlFile = '/var/www/html/pihole.html'
+htmlFile = '/var/www/html/temp.html'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v','--verbose', action='store_true',
@@ -22,35 +25,43 @@ parser.add_argument('-v','--verbose', action='store_true',
 args = parser.parse_args()
 
 def current_date_time(flag):
-    now = datetime.now()
+    now = datetime.datetime.now()
     d_string = now.strftime("%Y-%m-%d")
     if flag == "hm":
        t_string = now.strftime("%H:%M")
     if flag == "hms":
        t_string = now.strftime("%H:%M:%S")
     return d_string, t_string
-## End of function
 
 def debug_print(string):
     # Add print statement here is -v is set.
     if args.verbose:
         today, now = current_date_time('hms')
         print(f'DEBUG: {today} {now} - {string}')
-## End of function
 
-def create_graph(datatype)
+def date_days_ago(daysint):
+    daymath = datetime.timedelta(days=daysint)
+    day = datetime.date.today() - daymath
+    debug_print(str(daysint) + ' days ago it was ' + str(day))
+    return str(day)
+
+
+def create_graph(datatype):
     picture='/var/www/html/{datatype}.png' 
-    plt.style.use('dark_background')
-    fig = plt.figure(figsize=(15,3))
-    fig.patch.set_facecolor("#020202")
-    width = .75
-    maxmaxy = roundup(max(maxy))
+#    plt.style.use('dark_background')
+#    fig = plt.figure(figsize=(15,3))
+#    fig.patch.set_facecolor("#020202")
+#    width = .75
+#    maxmaxy = roundup(max(maxy))
 
 ## End of function
 
-def read_csv_file(filename)
-    with open('employee_birthday.txt', mode='r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
+def read_csv_file(filename):
+    with open(filename, mode='r') as csv_file:
+        csv_reader = csv.DictReader(csv_file,['dt','t','p','h'])
+        print(csv_reader.fieldnames)
+        for i in csv_reader:
+            print(f'{i["dt"]} - {i["t"]}F - {i["p"]} inHG - {i["h"]}%')
 
 
 hheader = '''<html>
@@ -72,3 +83,12 @@ body,html {
 
 hfooter = '</body></html>'
 
+datatype='dummy'
+
+#read_csv_file('/home/pi/temp_sensor_data/2022-06-05.csv')
+
+
+yesterday = date_days_ago(1)
+weekago = date_days_ago(7)
+
+print(f'Yesterday was {yesterday} and a week ago was {weekago}')

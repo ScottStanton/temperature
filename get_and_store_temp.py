@@ -3,6 +3,9 @@
 # This software is covered by The Unlicense license
 #
 
+###  Change this variable to change the directory the data is written in
+write_dir='/home/pi/temp_sensor_data'
+
 import argparse
 from datetime import datetime
 import smbus
@@ -186,7 +189,5 @@ def write_csv_file(write_dir):
 
 
 ##### Set default arguments  #####
-
-write_dir='/home/pi/temp_sensor_data'
 
 write_csv_file(write_dir)
