@@ -10,14 +10,47 @@ import argparse
 from datetime import datetime
 import smbus
 import time
+from paramiko import SSHClient
+from scp import SCPClient
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v','--verbose', action='store_true',
        help="Show debugging messages on the command line")
+parser.add_argument('-b','--backup', nargs=1, type=str,
+       metavar=('hostname'), help="User@Hostname to backup to.  Must have passwordless scp setup to the host.")
+
 
 args = parser.parse_args()
 
 ######  Subroutines   #####
+
+def backup_data(file_name):
+    debug_print('Backing up data')
+    before_hour, before_min, before_sec = current_time()
+
+    ssh = SSHClient()
+    ssh.load_system_host_keys()
+    if '@' in args.backup[0]:
+       dest_user,dest_host = args.backup[0].split('@')
+       debug_print(f'INIT: Destination user is {dest_user}')
+       ssh.connect(dest_host, username=dest_user)
+    else:
+       dest_host = args.backup[0]
+       dest_user = ''
+       ssh.connect(dest_host)
+
+
+    debug_print(f'SSH connection to {dest_host} is open.')
+
+    scp = SCPClient(ssh.get_transport())
+    debug_print(f'Copy {file_name} to {file_name}')
+    scp.put(file_name, file_name)
+
+    scp.close()
+    ssh.close()
+
+## End of function
 
 def get_sensor_data():
    # https://github.com/BoschSensortec/BME280_driver
@@ -186,6 +219,8 @@ def write_csv_file(write_dir):
     openFile.write(f'{now_date} {now_time},{temp:.2f},{pressure:.2f},{humidity:.2f}\n')
     #openFile.write(f'{now_date} {now_time},{temp:.2f}\N{DEGREE SIGN}F,{pressure:.2f},{humidity:.2f}%\n')
     openFile.close()
+    if args.backup_data:
+       backup_data(full_filename)
 
 
 ##### Set default arguments  #####
