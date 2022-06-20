@@ -30,7 +30,6 @@ parser.add_argument('-v','--verbose', action='store_true',
 args = parser.parse_args()
 
 def current_date_time(flag):
-    debug_print('Getting date and time')
     now = datetime.datetime.now()
     d_string = now.strftime("%Y-%m-%d")
     if flag == "hm":
@@ -57,7 +56,7 @@ def date_days_ago(daysint):
 
 
 def create_graph(datatype):
-    picture='{htmlDir}{datatype}.png' 
+    picture='f{htmlDir}{datatype}.png' 
 #    plt.style.use('dark_background')
 #    fig = plt.figure(figsize=(15,3))
 #    fig.patch.set_facecolor("#020202")
@@ -69,24 +68,37 @@ def create_graph(datatype):
 def read_csv_file(filename):
     global dataarray
     global dataarraylength
+    debug_print(f'read_csv_file: filename : {filename}')
     with open(filename, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file,['dt','t','p','h'])
-        print(csv_reader.fieldnames)
-        for i in csv_reader:
-            dataarray[dataarraylength] = [ i["dt"], i["t"], i["p"], i["h"] ]
+        debug_print(csv_reader.fieldnames)
+        for filerow in csv_reader:
+            dataarray = np.append(dataarray, [[ filerow["dt"], filerow["t"], filerow["p"], filerow["h"] ]],axis = 0)
             dataarraylength += 1
-            debug_print(f'{i["dt"]} - {i["t"]}F - {i["p"]} inHG - {i["h"]}%')
+            #debug_print(f'{filerow["dt"]} - {filerow["t"]}F - {filerow["p"]} inHG - {filerow["h"]}%')
+            #print(dataarray)
+        debug_print(f'read_csv_file: dataarraylength: {dataarraylength}')
 ## End of function
 
 def trim_array_for_twentyfour_hours():
+    # Set the global variables
     global dataarray
     global dataarraylength
-    today, now = current_date_time('hm')
-    now = now[:-1] + '0'
-    yesterday = date_days_ago(1)
-    read_csv_file(datadir + yesterday + '.csv')
-    read_csv_file(datadir + today + '.csv')
+    today, now = current_date_time('hm')   # Get today's date and current time
+    now = now[:-1] + '0'                   # truncate time to the last ten minute mark
+    yesterday = date_days_ago(1)           # Get yesterday's date
+    debug_print(f'trim_array_for_twentyfour_hours: yesterday: {yesterday}')
+    yesterdayfile = datadir + yesterday + '.csv'        # Get yesterday's filename
+    debug_print(f'trim_array_for_twentyfour_hours: yesterdayfile: {yesterdayfile}')
+    read_csv_file(yesterdayfile)                        # Read data from yesterday's file
+    todayfile = datadir + today + '.csv'                # Get today's filename
+    debug_print(f'trim_array_for_twentyfour_hours: todayfile: {todayfile}')
+    read_csv_file(todayfile)                            Read data from today's file
 
+    #print(dataarray)
+    print(dataarray[0])
+    print(dataarray[1])
+    print(dataarray[dataarraylength - 1 ])
 
 ## End of function
 
@@ -149,9 +161,9 @@ table.center {
 
 hfooter = '</body></html>'
 
-for datatype in ['temp', 'pressure', 'humidity']:
+#for datatype in ['temp', 'pressure', 'humidity']:
     
-
+trim_array_for_twentyfour_hours()
 
 #for i in range(2, -1, -1):
     #thisday = date_days_ago(i)
@@ -161,7 +173,7 @@ for datatype in ['temp', 'pressure', 'humidity']:
 
 #print(str(len(dataarray)))
 
-openFile = open('{htmlDir}index.html','w')
+openFile = open(f'{htmlDir}index.html','w')
 openFile.write(hheader)
 openFile.write(print_current_html())
 openFile.write(hfooter)
