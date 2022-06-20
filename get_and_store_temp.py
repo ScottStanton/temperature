@@ -2,6 +2,9 @@
 #
 # This software is covered by The Unlicense license
 #
+# Created by ScottStanton
+# https://github.com/ScottStanton/temperature
+
 
 ###  Change this variable to change the directory the data is written in
 write_dir='/home/pi/temp_sensor_data'
@@ -26,14 +29,14 @@ args = parser.parse_args()
 ######  Subroutines   #####
 
 def backup_data(file_name):
-    debug_print('Backing up data')
+    debug_print(f'backup_data::file_name:{file_name}')
     before_hour, before_min, before_sec = current_time()
 
     ssh = SSHClient()
     ssh.load_system_host_keys()
     if '@' in args.backup[0]:
        dest_user,dest_host = args.backup[0].split('@')
-       debug_print(f'INIT: Destination user is {dest_user}')
+       debug_print(f'backup_data::Destination user is {dest_user}')
        ssh.connect(dest_host, username=dest_user)
     else:
        dest_host = args.backup[0]
@@ -41,7 +44,7 @@ def backup_data(file_name):
        ssh.connect(dest_host)
 
 
-    debug_print(f'SSH connection to {dest_host} is open.')
+    debug_print(f'backup_data::SSH connection to {dest_host} is open.')
 
     scp = SCPClient(ssh.get_transport())
     debug_print(f'Copy {file_name} to {file_name}')
@@ -59,7 +62,7 @@ def get_sensor_data():
    # BME280
    # This code is designed to work with the BME280_I2CS I2C Mini Module available from ControlEverything.com.
    # https://www.controleverything.com/content/Humidity?sku=BME280_I2CS#tabs-0-product_tabset-2
-
+   debug_print(f'get_sensor_data::Entering Function')
    # Get I2C bus
    bus = smbus.SMBus(1)
 
@@ -206,23 +209,24 @@ def current_date_time(flag):
 def debug_print(string):
     # Add print statement here is -v is set.  
     if args.verbose:
-        today, now = current_date_time('hms')
-        print(f'DEBUG: {today} {now} - {string}')
+        now = datetime.now()
+        rightnow = now.strftime("%Y-%m-%d %H:%M:%S")
+        print(f'DEBUG: {rightnow} - {string}')
 ## End of function
 
 def write_csv_file(write_dir):
+    debug_print(f'write_csv_file::Entering Function')
     temp,pressure,humidity=get_sensor_data()
     now_date, now_time=current_date_time('hm')
     full_filename=write_dir + '/' + now_date + '.csv'
     debug_print(full_filename)
     openFile=open(full_filename, 'a')
     openFile.write(f'{now_date} {now_time},{temp:.2f},{pressure:.2f},{humidity:.2f}\n')
-    #openFile.write(f'{now_date} {now_time},{temp:.2f}\N{DEGREE SIGN}F,{pressure:.2f},{humidity:.2f}%\n')
     openFile.close()
     if args.backup_data:
        backup_data(full_filename)
 
 
-##### Set default arguments  #####
+### Main ###
 
 write_csv_file(write_dir)

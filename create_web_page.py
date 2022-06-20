@@ -2,10 +2,12 @@
 #
 # This software is covered by The Unlicense license
 #
+# Created by ScottStanton
+# https://github.com/ScottStanton/temperature
 
 ### Change these variables to match your environment:
 datadir='/home/pi/temp_sensor_data/'
-htmlDir = '/home/pi/git/temperature/'
+htmldir = '/home/pi/git/temperature/'
 
 import argparse
 import csv, math, requests, sys
@@ -17,6 +19,7 @@ import matplotlib.pyplot as plt
 from tenacity import *
 import datetime
 
+# Initialize required variables
 degree_sign = u'\N{DEGREE SIGN}'
 global dataarray
 dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
@@ -30,6 +33,10 @@ parser.add_argument('-v','--verbose', action='store_true',
 args = parser.parse_args()
 
 def current_date_time(flag):
+    # Get today's date and current time
+    # pass 'hm' if minutes are needed
+    # pass 'hms' if seconds are needed
+    debug_print(f'current_date_time::flag: {flag}')
     now = datetime.datetime.now()
     d_string = now.strftime("%Y-%m-%d")
     if flag == "hm":
@@ -40,23 +47,27 @@ def current_date_time(flag):
 ## End of function
 
 def debug_print(string):
-    # Add print statement here is -v is set.
+    # Add print statement here if -v is set.
     if args.verbose:
-        today, now = current_date_time('hms')
-        print(f'DEBUG: {today} {now} - {string}')
+        now = datetime.datetime.now()
+        rightnow = now.strftime("%Y-%m-%d %H:%M:%S")
+        print(f'DEBUG: {rightnow} - {string}')
 ## End of function
 
 def date_days_ago(daysint):
-    debug_print(f'Doing date_days_ago({daysint}) math')
+    # Get the date from 'daysint' days ago.
+    # This is helpful on the first days of the month.
+    # Use 0 to get today
+    debug_print(f'date_days_ago::daysint: {daysint}')
     daymath = datetime.timedelta(days=daysint)
     day = datetime.date.today() - daymath
-    debug_print(str(daysint) + ' days ago it was ' + str(day))
+    debug_print(f'date_days_ago::returning date {day}')
     return str(day)
 ## End of function
 
 
 def create_graph(datatype):
-    picture='f{htmlDir}{datatype}.png' 
+    picture='f{htmldir}{datatype}.png' 
 #    plt.style.use('dark_background')
 #    fig = plt.figure(figsize=(15,3))
 #    fig.patch.set_facecolor("#020202")
@@ -66,22 +77,22 @@ def create_graph(datatype):
 ## End of function
 
 def read_csv_file(filename):
+    # Read the date/time stamp, temperature, pressure, and humitidy data from a csv file and put it in a global array.
     global dataarray
     global dataarraylength
-    debug_print(f'read_csv_file: filename : {filename}')
+    debug_print(f'read_csv_file::filename: {filename}')
     with open(filename, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file,['dt','t','p','h'])
-        debug_print(csv_reader.fieldnames)
         for filerow in csv_reader:
             dataarray = np.append(dataarray, [[ filerow["dt"], filerow["t"], filerow["p"], filerow["h"] ]],axis = 0)
             dataarraylength += 1
             #debug_print(f'{filerow["dt"]} - {filerow["t"]}F - {filerow["p"]} inHG - {filerow["h"]}%')
-            #print(dataarray)
-        debug_print(f'read_csv_file: dataarraylength: {dataarraylength}')
+        debug_print(f'read_csv_file::dataarraylength: {dataarraylength}')
 ## End of function
 
 def trim_array_for_twentyfour_hours():
     # Set the global variables
+    debug_print(f'trim_array_for_twentyfour_hours::Function entered')
     global dataarray
     global dataarraylength
     today, now = current_date_time('hm')   # Get today's date and current time
@@ -93,16 +104,17 @@ def trim_array_for_twentyfour_hours():
     read_csv_file(yesterdayfile)                        # Read data from yesterday's file
     todayfile = datadir + today + '.csv'                # Get today's filename
     debug_print(f'trim_array_for_twentyfour_hours: todayfile: {todayfile}')
-    read_csv_file(todayfile)                            Read data from today's file
-
+    read_csv_file(todayfile)                            #Read data from today's file
+    debug_print(f'trim_array_for_twentyfour_hours::Data read from files')
     #print(dataarray)
-    print(dataarray[0])
-    print(dataarray[1])
-    print(dataarray[dataarraylength - 1 ])
+    #print(dataarray[0])
+    #print(dataarray[1])
+    #print(dataarray[dataarraylength - 1 ])
 
 ## End of function
 
 def print_current_html():
+    debug_print(f'print_current_html::Function entered')
     thisday = date_days_ago(0)
     filename = datadir + thisday + '.csv'
     with open(filename, 'r') as f:
@@ -165,15 +177,8 @@ hfooter = '</body></html>'
     
 trim_array_for_twentyfour_hours()
 
-#for i in range(2, -1, -1):
-    #thisday = date_days_ago(i)
-    #filename = datadir + thisday + '.csv'
-    #print(filename)
-    #read_csv_file(filename)
 
-#print(str(len(dataarray)))
-
-openFile = open(f'{htmlDir}index.html','w')
+openFile = open(f'{htmldir}index.html','w')
 openFile.write(hheader)
 openFile.write(print_current_html())
 openFile.write(hfooter)
