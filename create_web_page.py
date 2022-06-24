@@ -7,7 +7,7 @@
 
 ### Change these variables to match your environment:
 datadir='/home/pi/temp_sensor_data/'
-htmldir = '/home/pi/git/temperature/'
+htmldir = '/usr/share/caddy/'
 
 import argparse
 import csv, math, requests, sys
@@ -46,6 +46,7 @@ def current_date_time(flag):
     return d_string, t_string
 ## End of function
 
+
 def debug_print(string):
     # Add print statement here if -v is set.
     if args.verbose:
@@ -53,6 +54,17 @@ def debug_print(string):
         rightnow = now.strftime("%Y-%m-%d %H:%M:%S")
         print(f'DEBUG: {rightnow} - {string}')
 ## End of function
+
+
+def roundup(x, y):
+    return x if x % y == 0 else x + y - x % y
+## End of function
+
+
+def rounddown(x, y):
+    return x if x % y == 0 else x - x % y
+## End of function
+
 
 def date_days_ago(daysint):
     # Get the date from 'daysint' days ago.
@@ -66,15 +78,37 @@ def date_days_ago(daysint):
 ## End of function
 
 
-def create_graph(datatype):
-    picture='f{htmldir}{datatype}.png' 
-#    plt.style.use('dark_background')
-#    fig = plt.figure(figsize=(15,3))
-#    fig.patch.set_facecolor("#020202")
-#    width = .75
-#    maxmaxy = roundup(max(maxy))
+def create_graph(datatype, xarray, yarray, sigfig):
+    global dataarraylength
+    picture=f'{htmldir}{datatype.replace(" ", "")}.png' 
+    plt.style.use('dark_background')
+    fig = plt.figure(figsize=(15,3))
+    fig.patch.set_facecolor("#020202")
+    width = .75
+    nmax = np.amax(yarray)
+    nmin = np.amin(yarray)
+    miny = rounddown(nmin, sigfig)
+    maxy = roundup(nmax, sigfig)
+    plt.plot(np.arange(0,dataarraylength,1),yarray)
+    xtickarr = np.array([[ 0, 0 ]])
+    for x in np.arange(0,dataarraylength,6):
+        xtickarr = np.append(xtickarr, [[ x , xarray[x] ]], axis=0)
 
+    xtickarr = np.delete(xtickarr, 0,axis = 0)
+    xticknum, xticklabel = xtickarr.T
+    xticknum = xticknum.astype(int)
+    #print(xtickarr)
+    plt.xticks(xticknum, xticklabel, rotation = 45)
+    plt.xlabel('Time')
+    plt.title(datatype)
+    plt.savefig(picture, bbox_inches="tight")
 ## End of function
+ 
+
+def insertgraph(datatype):
+    return f'<p><center><img src={datatype.replace(" ", "")}.png alt=graph width=90%></center>'
+## End of function
+
 
 def read_csv_file(filename):
     # Read the date/time stamp, temperature, pressure, and humitidy data from a csv file and put it in a global array.
@@ -97,6 +131,7 @@ def trim_array_for_twentyfour_hours():
     global dataarraylength
     today, now = current_date_time('hm')   # Get today's date and current time
     now = now[:-1] + '0'                   # truncate time to the last ten minute mark
+    debug_print(f'trim_array_for_twentyfour_hours: now: {now}')
     yesterday = date_days_ago(1)           # Get yesterday's date
     debug_print(f'trim_array_for_twentyfour_hours: yesterday: {yesterday}')
     yesterdayfile = datadir + yesterday + '.csv'        # Get yesterday's filename
@@ -106,12 +141,27 @@ def trim_array_for_twentyfour_hours():
     debug_print(f'trim_array_for_twentyfour_hours: todayfile: {todayfile}')
     read_csv_file(todayfile)                            #Read data from today's file
     debug_print(f'trim_array_for_twentyfour_hours::Data read from files')
-    #print(dataarray)
-    #print(dataarray[0])
-    #print(dataarray[1])
-    #print(dataarray[dataarraylength - 1 ])
+    nowhour = int(now.split(':')[0])
+    nowmin = int(now.split(':')[1])
+    for hour in range(0,nowhour , 1):
+        for min in range(0, 60, 10):
+            #print(f'{hour}:{min}')
+            dataarray = np.delete(dataarray, 1,axis = 0)
+            dataarraylength -= 1
+    for min in range(0, nowmin + 10, 10):
+        #print(f'{nowhour}:{min}')
+        dataarray = np.delete(dataarray, 1,axis = 0)
+        dataarraylength -= 1
+    dataarray = np.delete(dataarray, 0,axis = 0)
+    dataarraylength -= 1
+    dt, temp, pres, humi = dataarray.T
+    t = temp.astype(float)
+    p = pres.astype(float)
+    h = humi.astype(float)
+    return dt, t, p, h
 
 ## End of function
+
 
 def print_current_html():
     debug_print(f'print_current_html::Function entered')
@@ -142,7 +192,7 @@ def print_current_html():
 hheader = '''<html>
 <head>
 <title>Temperature Pressure Humidity</title>
-<meta http-equiv="refresh" content="300">
+<meta http-equiv="refresh" content="60">
 <style type="text/css">
 body,html {
   height: 100%;
@@ -173,15 +223,19 @@ table.center {
 
 hfooter = '</body></html>'
 
-#for datatype in ['temp', 'pressure', 'humidity']:
-    
-trim_array_for_twentyfour_hours()
-
-
 openFile = open(f'{htmldir}index.html','w')
 openFile.write(hheader)
 openFile.write(print_current_html())
+
+adatetime, at, ap, ah = trim_array_for_twentyfour_hours()
+create_graph('24 Hr Temperature', adatetime, at, 1)
+openFile.write(insertgraph('24 Hr Temperature'))
+create_graph('24 Hr Pressure', adatetime, ap, 1)
+openFile.write(insertgraph('24 Hr Pressure'))
+create_graph('24 Hr Humidity', adatetime, ah, 1)
+openFile.write(insertgraph('24 Hr Humidity'))
+
+
 openFile.write(hfooter)
 openFile.close()
-
 
