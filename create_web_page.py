@@ -7,7 +7,8 @@
 
 ### Change these variables to match your environment:
 datadir='/home/pi/temp_sensor_data/'
-htmldir = '/usr/share/caddy/'
+#htmldir = '/usr/share/caddy/'
+htmldir = '/home/pi/git/temperature/'
 
 import argparse
 import csv, math, requests, sys
@@ -22,9 +23,9 @@ import datetime
 # Initialize required variables
 degree_sign = u'\N{DEGREE SIGN}'
 global dataarray
-dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
 global dataarraylength
-dataarraylength = int("1")
+#dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
+#dataarraylength = int("1")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v','--verbose', action='store_true',
@@ -124,25 +125,9 @@ def read_csv_file(filename):
         debug_print(f'read_csv_file::dataarraylength: {dataarraylength}')
 ## End of function
 
-def trim_array_for_twentyfour_hours():
-    # Set the global variables
-    debug_print(f'trim_array_for_twentyfour_hours::Function entered')
+def trim_top_of_array(nowhour, nowmin):
     global dataarray
     global dataarraylength
-    today, now = current_date_time('hm')   # Get today's date and current time
-    now = now[:-1] + '0'                   # truncate time to the last ten minute mark
-    debug_print(f'trim_array_for_twentyfour_hours: now: {now}')
-    yesterday = date_days_ago(1)           # Get yesterday's date
-    debug_print(f'trim_array_for_twentyfour_hours: yesterday: {yesterday}')
-    yesterdayfile = datadir + yesterday + '.csv'        # Get yesterday's filename
-    debug_print(f'trim_array_for_twentyfour_hours: yesterdayfile: {yesterdayfile}')
-    read_csv_file(yesterdayfile)                        # Read data from yesterday's file
-    todayfile = datadir + today + '.csv'                # Get today's filename
-    debug_print(f'trim_array_for_twentyfour_hours: todayfile: {todayfile}')
-    read_csv_file(todayfile)                            #Read data from today's file
-    debug_print(f'trim_array_for_twentyfour_hours::Data read from files')
-    nowhour = int(now.split(':')[0])
-    nowmin = int(now.split(':')[1])
     for hour in range(0,nowhour , 1):
         for min in range(0, 60, 10):
             #print(f'{hour}:{min}')
@@ -154,12 +139,68 @@ def trim_array_for_twentyfour_hours():
         dataarraylength -= 1
     dataarray = np.delete(dataarray, 0,axis = 0)
     dataarraylength -= 1
+## End of function
+
+def trim_array_for_twentyfour_hours():
+    # Set the global variables
+    debug_print(f'trim_array_for_twentyfour_hours::Function entered')
+    global dataarray
+    global dataarraylength
+    today, now = current_date_time('hm')   # Get today's date and current time
+    now = now[:-1] + '0'                   # truncate time to the last ten minute mark
+    debug_print(f'trim_array_for_twentyfour_hours: now: {now}')
+
+    yesterday = date_days_ago(1)           # Get yesterday's date
+    debug_print(f'trim_array_for_twentyfour_hours: yesterday: {yesterday}')
+    yesterdayfile = datadir + yesterday + '.csv'        # Get yesterday's filename
+    debug_print(f'trim_array_for_twentyfour_hours: yesterdayfile: {yesterdayfile}')
+    read_csv_file(yesterdayfile)                        # Read data from yesterday's file
+
+    todayfile = datadir + today + '.csv'                # Get today's filename
+    debug_print(f'trim_array_for_twentyfour_hours: todayfile: {todayfile}')
+    read_csv_file(todayfile)                            #Read data from today's file
+    debug_print(f'trim_array_for_twentyfour_hours::Data read from files')
+
+    nowhour = int(now.split(':')[0])
+    nowmin = int(now.split(':')[1])
+    trim_top_of_array(nowhour, nowmin)
+
     dt, temp, pres, humi = dataarray.T
     t = temp.astype(float)
     p = pres.astype(float)
     h = humi.astype(float)
     return dt, t, p, h
+## End of function
 
+
+def trim_array_for_seven_days():
+    # Set the global variables
+    debug_print(f'trim_array_for_seven_days::Function entered')
+    global dataarray
+    global dataarraylength
+    today, now = current_date_time('hm')   # Get today's date and current time
+    now = now[:-1] + '0'                   # truncate time to the last ten minute mark
+    debug_print(f'trim_array_for_seven_days: now: {now}')
+
+    yesterday = date_days_ago(1)           # Get yesterday's date
+    debug_print(f'trim_array_for_seven_days: yesterday: {yesterday}')
+    yesterdayfile = datadir + yesterday + '.csv'        # Get yesterday's filename
+    debug_print(f'trim_array_for_seven_days: yesterdayfile: {yesterdayfile}')
+    read_csv_file(yesterdayfile)                        # Read data from yesterday's file
+    todayfile = datadir + today + '.csv'                # Get today's filename
+    debug_print(f'trim_array_for_seven_days: todayfile: {todayfile}')
+    read_csv_file(todayfile)                            #Read data from today's file
+    debug_print(f'trim_array_for_seven_days::Data read from files')
+
+    nowhour = int(now.split(':')[0])
+    nowmin = int(now.split(':')[1])
+    trim_top_of_array(nowhour, nowmin)
+
+    dt, temp, pres, humi = dataarray.T
+    t = temp.astype(float)
+    p = pres.astype(float)
+    h = humi.astype(float)
+    return dt, t, p, h
 ## End of function
 
 
@@ -227,6 +268,9 @@ openFile = open(f'{htmldir}index.html','w')
 openFile.write(hheader)
 openFile.write(print_current_html())
 
+dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
+dataarraylength = int("1")
+
 adatetime, at, ap, ah = trim_array_for_twentyfour_hours()
 create_graph('24 Hr Temperature', adatetime, at, 1)
 openFile.write(insertgraph('24 Hr Temperature'))
@@ -234,6 +278,9 @@ create_graph('24 Hr Pressure', adatetime, ap, 1)
 openFile.write(insertgraph('24 Hr Pressure'))
 create_graph('24 Hr Humidity', adatetime, ah, 1)
 openFile.write(insertgraph('24 Hr Humidity'))
+
+dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
+dataarraylength = int("1")
 
 
 openFile.write(hfooter)
