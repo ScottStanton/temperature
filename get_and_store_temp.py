@@ -23,7 +23,6 @@ parser.add_argument('-v','--verbose', action='store_true',
 parser.add_argument('-b','--backup', nargs=1, type=str,
        metavar=('hostname'), help="User@Hostname to backup to.  Must have passwordless scp setup to the host.")
 
-
 args = parser.parse_args()
 
 ######  Subroutines   #####

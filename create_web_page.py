@@ -7,8 +7,7 @@
 
 ### Change these variables to match your environment:
 datadir='/home/pi/temp_sensor_data/'
-#htmldir = '/usr/share/caddy/'
-htmldir = '/home/pi/git/temperature/'
+htmldir = '/usr/share/caddy/'
 
 import argparse
 import csv, math, requests, sys
@@ -24,14 +23,13 @@ import datetime
 degree_sign = u'\N{DEGREE SIGN}'
 global dataarray
 global dataarraylength
-#dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
-#dataarraylength = int("1")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v','--verbose', action='store_true',
        help="Show debugging messages on the command line")
 
 args = parser.parse_args()
+
 
 def current_date_time(flag):
     # Get today's date and current time
@@ -86,23 +84,36 @@ def create_graph(datatype, xarray, yarray, sigfig):
     fig = plt.figure(figsize=(15,3))
     fig.patch.set_facecolor("#020202")
     width = .75
+    
+    # Find the min and max values for the Y axis of the graph
     nmax = np.amax(yarray)
     nmin = np.amin(yarray)
     miny = rounddown(nmin, sigfig)
     maxy = roundup(nmax, sigfig)
+
+    # The number of labels on the bottom of the graph need to be vastly different
+    # for 24 hour graph vs. 7 day graphs
+    # tickdivide of 6 gives a label every hour
+    # tickdivide of 36 give a label every 6 hours
+    if dataarraylength < 300:
+        tickdivide = 6
+    else:
+        tickdivide = 36
+
     plt.plot(np.arange(0,dataarraylength,1),yarray)
+    
+    # Create an array and fill it with count and with date/time labels for the X axis
     xtickarr = np.array([[ 0, 0 ]])
-    for x in np.arange(0,dataarraylength,6):
+    for x in np.arange(0,dataarraylength,tickdivide):
         xtickarr = np.append(xtickarr, [[ x , xarray[x] ]], axis=0)
 
-    xtickarr = np.delete(xtickarr, 0,axis = 0)
-    xticknum, xticklabel = xtickarr.T
-    xticknum = xticknum.astype(int)
-    #print(xtickarr)
-    plt.xticks(xticknum, xticklabel, rotation = 45)
-    plt.xlabel('Time')
+    xtickarr = np.delete(xtickarr, 0,axis = 0)  # delete the initial 0,0 row in the array
+    xticknum, xticklabel = xtickarr.T           # transpose the table into 1 by X arrays
+    xticknum = xticknum.astype(int)             # Make the numbers integer
+    plt.xticks(xticknum, xticklabel, rotation = 45)  # rotate the label to make it easier to read
     plt.title(datatype)
     plt.savefig(picture, bbox_inches="tight")
+    # bbox_inches="tight" makes the graph take up all the space instead of being padded
 ## End of function
  
 
@@ -141,39 +152,8 @@ def trim_top_of_array(nowhour, nowmin):
     dataarraylength -= 1
 ## End of function
 
-def trim_array_for_twentyfour_hours():
-    # Set the global variables
-    debug_print(f'trim_array_for_twentyfour_hours::Function entered')
-    global dataarray
-    global dataarraylength
-    today, now = current_date_time('hm')   # Get today's date and current time
-    now = now[:-1] + '0'                   # truncate time to the last ten minute mark
-    debug_print(f'trim_array_for_twentyfour_hours: now: {now}')
 
-    yesterday = date_days_ago(1)           # Get yesterday's date
-    debug_print(f'trim_array_for_twentyfour_hours: yesterday: {yesterday}')
-    yesterdayfile = datadir + yesterday + '.csv'        # Get yesterday's filename
-    debug_print(f'trim_array_for_twentyfour_hours: yesterdayfile: {yesterdayfile}')
-    read_csv_file(yesterdayfile)                        # Read data from yesterday's file
-
-    todayfile = datadir + today + '.csv'                # Get today's filename
-    debug_print(f'trim_array_for_twentyfour_hours: todayfile: {todayfile}')
-    read_csv_file(todayfile)                            #Read data from today's file
-    debug_print(f'trim_array_for_twentyfour_hours::Data read from files')
-
-    nowhour = int(now.split(':')[0])
-    nowmin = int(now.split(':')[1])
-    trim_top_of_array(nowhour, nowmin)
-
-    dt, temp, pres, humi = dataarray.T
-    t = temp.astype(float)
-    p = pres.astype(float)
-    h = humi.astype(float)
-    return dt, t, p, h
-## End of function
-
-
-def trim_array_for_seven_days():
+def get_array_for_days(numdays):
     # Set the global variables
     debug_print(f'trim_array_for_seven_days::Function entered')
     global dataarray
@@ -182,14 +162,11 @@ def trim_array_for_seven_days():
     now = now[:-1] + '0'                   # truncate time to the last ten minute mark
     debug_print(f'trim_array_for_seven_days: now: {now}')
 
-    yesterday = date_days_ago(1)           # Get yesterday's date
-    debug_print(f'trim_array_for_seven_days: yesterday: {yesterday}')
-    yesterdayfile = datadir + yesterday + '.csv'        # Get yesterday's filename
-    debug_print(f'trim_array_for_seven_days: yesterdayfile: {yesterdayfile}')
-    read_csv_file(yesterdayfile)                        # Read data from yesterday's file
-    todayfile = datadir + today + '.csv'                # Get today's filename
-    debug_print(f'trim_array_for_seven_days: todayfile: {todayfile}')
-    read_csv_file(todayfile)                            #Read data from today's file
+    for i in range(numdays,-1,-1):
+       thatday = date_days_ago(i)           # Get that day's date
+       debug_print(f'trim_array_for_seven_days: thatday: {thatday}')
+       thatdayfile = datadir + thatday + '.csv'        # Get that day's filename
+       read_csv_file(thatdayfile)                      #Read data from today's file
     debug_print(f'trim_array_for_seven_days::Data read from files')
 
     nowhour = int(now.split(':')[0])
@@ -210,6 +187,7 @@ def print_current_html():
     filename = datadir + thisday + '.csv'
     with open(filename, 'r') as f:
         last_line = f.readlines()[-1]
+        da = (( 29.92 - float(last_line.split(',')[2]) ) * 1000 ) + 147
         tablehtml = '''<table class="center">
   <tr>
   <tr>
@@ -217,19 +195,21 @@ def print_current_html():
     <th>Temperature</th>
     <th>Pressure</th>
     <th>Humidity</th>
+    <th>Density Altitude</th>
   </tr>        
   <tr>
     <td>{0}</td>
     <td>{1}{4}F</td>
     <td>{2} inHG</td>
     <td>{3}%</td>
+    <td>{5:.0f}ft</td>
   </tr>        
 </table>'''
-        thestring = tablehtml.format(last_line.split(',')[0],last_line.split(',')[1],last_line.split(',')[2],last_line.split(',')[3],degree_sign)
+        thestring = tablehtml.format(last_line.split(',')[0],last_line.split(',')[1],last_line.split(',')[2],last_line.split(',')[3],degree_sign,da)
     return thestring
 ## End of function
 
-
+# Create the header for the html page
 hheader = '''<html>
 <head>
 <title>Temperature Pressure Humidity</title>
@@ -264,6 +244,8 @@ table.center {
 
 hfooter = '</body></html>'
 
+##### Main Program #####
+
 openFile = open(f'{htmldir}index.html','w')
 openFile.write(hheader)
 openFile.write(print_current_html())
@@ -271,7 +253,7 @@ openFile.write(print_current_html())
 dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
 dataarraylength = int("1")
 
-adatetime, at, ap, ah = trim_array_for_twentyfour_hours()
+adatetime, at, ap, ah = get_array_for_days(1)
 create_graph('24 Hr Temperature', adatetime, at, 1)
 openFile.write(insertgraph('24 Hr Temperature'))
 create_graph('24 Hr Pressure', adatetime, ap, 1)
@@ -281,7 +263,15 @@ openFile.write(insertgraph('24 Hr Humidity'))
 
 dataarray = np.array([[ "datetime", "temperature", "pressure", "humidity" ]])
 dataarraylength = int("1")
+debug_print(f'main::Cleared dataarray and dataarraylength for use in 7 day graphs')
 
+adatetime, at, ap, ah = get_array_for_days(7)
+create_graph('7 day Temperature', adatetime, at, 1)
+openFile.write(insertgraph('7 day Temperature'))
+create_graph('7 day Pressure', adatetime, ap, 1)
+openFile.write(insertgraph('7 day Pressure'))
+create_graph('7 day Humidity', adatetime, ah, 1)
+openFile.write(insertgraph('7 day Humidity'))
 
 openFile.write(hfooter)
 openFile.close()
