@@ -187,6 +187,10 @@ def print_current_html():
     filename = datadir + thisday + '.csv'
     with open(filename, 'r') as f:
         last_line = f.readlines()[-1]
+        dts = last_line.split(',')[0]
+        temp = float(last_line.split(',')[1])
+        pres = float(last_line.split(',')[2])
+        humi = float(last_line.split(',')[3])
         da = (( 29.92 - float(last_line.split(',')[2]) ) * 1000 ) + 147
         tablehtml = '''<table class="center">
   <tr>
@@ -199,13 +203,13 @@ def print_current_html():
   </tr>        
   <tr>
     <td>{0}</td>
-    <td>{1}{4}F</td>
-    <td>{2} inHG</td>
-    <td>{3}%</td>
+    <td>{1:.1f}{4}F</td>
+    <td>{2:.2f} inHG</td>
+    <td>{3:.1f}%</td>
     <td>{5:.0f}ft</td>
   </tr>        
 </table>'''
-        thestring = tablehtml.format(last_line.split(',')[0],last_line.split(',')[1],last_line.split(',')[2],last_line.split(',')[3],degree_sign,da)
+        thestring = tablehtml.format(dts,temp,pres,humi,degree_sign,da)
     return thestring
 ## End of function
 

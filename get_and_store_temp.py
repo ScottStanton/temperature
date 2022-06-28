@@ -220,7 +220,7 @@ def write_csv_file(write_dir):
     full_filename=write_dir + '/' + now_date + '.csv'
     debug_print(full_filename)
     openFile=open(full_filename, 'a')
-    openFile.write(f'{now_date} {now_time},{temp:.2f},{pressure:.2f},{humidity:.2f}\n')
+    openFile.write(f'{now_date} {now_time},{temp:.2f},{pressure:.4f},{humidity:.2f}\n')
     openFile.close()
     if args.backup_data:
        backup_data(full_filename)
