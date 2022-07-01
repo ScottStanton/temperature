@@ -8,6 +8,9 @@
 
 ###  Change this variable to change the directory the data is written in
 write_dir='/home/pi/temp_sensor_data'
+tempdiff = 0.0
+presdiff = -.19
+humidiff = 0.0
 
 import argparse
 from datetime import datetime
@@ -186,6 +189,10 @@ def get_sensor_data():
    elif humidity < 0.0 :
        humidity = 0.0
    
+   temperature = temperature + tempdiff
+   pressure = pressure + presdiff
+   humidity = humidity + humidiff
+
    # Output data to screen
    debug_print("Temperature in Fahrenheit : %.2f F" %temperature)
    debug_print("Pressure : %.2f inhg " %pressure)
