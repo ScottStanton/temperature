@@ -29,7 +29,6 @@ args = parser.parse_args()
 
 def backup_data(file_name):
     debug_print(f'backup_data::file_name:{file_name}')
-    before_hour, before_min, before_sec = current_time()
 
     ssh = SSHClient()
     ssh.load_system_host_keys()
@@ -222,7 +221,7 @@ def write_csv_file(write_dir):
     openFile=open(full_filename, 'a')
     openFile.write(f'{now_date} {now_time},{temp:.2f},{pressure:.4f},{humidity:.2f}\n')
     openFile.close()
-    if args.backup_data:
+    if args.backup:
        backup_data(full_filename)
 
 
