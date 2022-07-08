@@ -191,7 +191,8 @@ def print_current_html():
         temp = float(last_line.split(',')[1])
         pres = float(last_line.split(',')[2])
         humi = float(last_line.split(',')[3])
-        da = (( 29.92 - float(last_line.split(',')[2]) ) * 1000 ) + 147
+        tempc = (temp - 32) * 5 / 9
+        da = (( 29.92 - pres ) * 1000 ) + 147 + (120 * (tempc - 0.5))
         tablehtml = '''<table class="center">
   <tr>
   <tr>
